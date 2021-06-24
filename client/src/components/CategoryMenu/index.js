@@ -1,10 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { QUERY_CATEGORIES } from '../../utils/queries';
+import { UPDATE_CATEGORIES, UPDATE_CURRENT_CATEGORY } from "../../utils/actions";
+import { useStoreContext } from "../../utils/GlobalState";
 
-function CategoryMenu({ setCategory }) {
+function CategoryMenu() {
+  // retrieve current state from GSO and dispatch method to update state
+  const [state, dispatch] = useStoreContext();
+
+  // destructure categories out of GSO
+  const { categories } = state;
+
+  // useQuery is async
   const { data: categoryData } = useQuery(QUERY_CATEGORIES);
-  const categories = categoryData?.categories || [];
+  // const categories = categoryData?.categories || [];
+
+  useEffect(() => {
+    // if categoryData not undefined/exists, or has changed from response of useQuery, run dispatch()
+    if (categoryData) {
+      // execute dispatch fx with action obj indicating type of action and data to set categories' state to
+      dispatch({
+        type: UPDATE_CATEGORIES,
+        categories: categoryData.categories
+      });
+    }
+  }, [categoryData, dispatch]);
+
+  const handleClick = id => {
+    dispatch({
+      type: UPDATE_CURRENT_CATEGORY,
+      currentCategory: id
+    });
+  };
 
   return (
     <div>
@@ -13,7 +40,7 @@ function CategoryMenu({ setCategory }) {
         <button
           key={item._id}
           onClick={() => {
-            setCategory(item._id);
+            handleClick(item._id);
           }}
         >
           {item.name}
