@@ -20,6 +20,8 @@ const StoreProvider = ({ value = [], ...props }) => {
   // dispatch looks for action obj passed in as arg
   const [state, dispatch] = useProductReducer({
     products: [],
+    cart: [],
+    cartOpen: false,
     categories: [],
     currentCategory: "",
   });

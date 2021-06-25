@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@apollo/client";
 import { useStoreContext } from "../utils/GlobalState";
-import { UPDATE_PRODUCTS } from "../utils/actions";
-
-import { QUERY_PRODUCTS } from '../utils/queries';
-import spinner from '../assets/spinner.gif';
+import {
+  REMOVE_FROM_CART,
+  UPDATE_CART_QUANTITY,
+  ADD_TO_CART,
+  UPDATE_PRODUCTS,
+} from "../utils/actions";
+import { QUERY_PRODUCTS } from "../utils/queries";
+import Cart from "../components/Cart";
+import spinner from "../assets/spinner.gif";
 
 function Detail() {
   // get GSO
@@ -17,9 +22,33 @@ function Detail() {
   // query data using Apollo
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
-  // destructure products out of state
-  const { products } = state;
+  // destructure products and cart out of state
+  const { products, cart } = state;
   // const products = data?.products || [];
+
+  const addToCart = () => {
+    const itemInCart = cart.find((cartItem) => cartItem._id === id);
+
+    if (itemInCart) {
+      dispatch({
+        type: UPDATE_CART_QUANTITY,
+        _id: id,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1,
+      });
+    } else {
+      dispatch({
+        type: ADD_TO_CART,
+        product: { ...currentProduct, purchaseQuantity: 1 },
+      });
+    }
+  };
+
+  const removeFromCart = () => {
+    dispatch({
+      type: REMOVE_FROM_CART,
+      _id: currentProduct._id,
+    });
+  };
 
   // checks for data in GSO products array, if there is, find which product is current one we want to display
   useEffect(() => {
@@ -32,7 +61,7 @@ function Detail() {
       // we're not saving current product to GSO, only locally bc it's only used in this specific component at this specific moment
       dispatch({
         type: UPDATE_PRODUCTS,
-        products: data.products
+        products: data.products,
       });
     }
     // DEPENDENCY ARRAY: when there is data in products array, run setCurrentProduct to  display single product data
@@ -49,9 +78,14 @@ function Detail() {
           <p>{currentProduct.description}</p>
 
           <p>
-            <strong>Price:</strong>${currentProduct.price}{' '}
-            <button>Add to Cart</button>
-            <button>Remove from Cart</button>
+            <strong>Price:</strong>${currentProduct.price}{" "}
+            <button onClick={addToCart}>Add to Cart</button>
+            <button
+              disabled={!cart.find((p) => p._id === currentProduct._id)}
+              onClick={removeFromCart}
+            >
+              Remove from Cart
+            </button>
           </p>
 
           <img
@@ -61,6 +95,7 @@ function Detail() {
         </div>
       ) : null}
       {loading ? <img src={spinner} alt="loading" /> : null}
+      <Cart />
     </>
   );
 }

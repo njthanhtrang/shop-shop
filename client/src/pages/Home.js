@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ProductList from "../components/ProductList";
 import CategoryMenu from "../components/CategoryMenu";
+import Cart from "../components/Cart";
 
 // manages state of currentCategory, passed to ProductList as a prop
 // instructs which category's products should be retrieved
@@ -17,6 +18,7 @@ const Home = () => {
       {/* remove previous state management because now managed globally */}
       <CategoryMenu />
       <ProductList />
+      <Cart />
     </div>
   );
 };
