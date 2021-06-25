@@ -43,7 +43,7 @@ const CartItem = ({ item }) => {
         </div>
         <div>
           <span>Qty:</span>
-          {/* value can change and is no longer read-only*/}
+          {/* value can change and is no longer read-only with onChange handler*/}
           <input type="number" placeholder="1" value={item.purchaseQuantity} onChange={onChange} />
           <span
             role="img"
