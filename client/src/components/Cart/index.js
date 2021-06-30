@@ -5,9 +5,17 @@ import "./style.css";
 import { useStoreContext } from "../../utils/GlobalState";
 import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from "../../utils/actions";
 import { idbPromise } from "../../utils/helpers";
+import { QUERY_CHECKOUT } from "../../utils/queries";
+import { loadStripe } from "@stripe/stripe-js";
+import { useLazyQuery } from "@apollo/client";
+
+// for checkout redirect
+const stripePromise = loadStripe("pk_test_TYooMQauvdEDq54NiTphI7jx");
 
 const Cart = () => {
   const [state, dispatch] = useStoreContext();
+  // data variable contains checkout session after query called with getCheckout()
+  const [getCheckout, { data }] = useLazyQuery(QUERY_CHECKOUT);
 
   // check if there's anything in state's cart property on load
   useEffect(() => {
@@ -39,6 +47,22 @@ const Cart = () => {
       sum += item.price * item.purchaseQuantity;
     });
     return sum.toFixed(2);
+  }
+
+  // when user clicks Checkout, loop over items saved in state.cart
+  // add IDs to productIds array for QUERY_CHECKOUT query to generate Stripe session
+  function submitCheckout() {
+    const productIds = [];
+
+    state.cart.forEach((item) => {
+      for (let i = 0; i < item.purchaseQuantity; i++) {
+        productIds.push(item._id);
+      }
+    });
+
+    getCheckout({
+      variables: { products: productIds }
+    });
   }
 
   if (!state.cartOpen) {
@@ -74,7 +98,7 @@ const Cart = () => {
             <strong>Total: ${calculateTotal()}</strong>
             {/* conditionally render checkout button */}
             {Auth.loggedIn() ? (
-              <button>Checkout</button>
+              <button onClick={submitCheckout}>Checkout</button>
             ) : (
               <span>(log in to check out)</span>
             )}

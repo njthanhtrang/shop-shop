@@ -54,6 +54,9 @@ const resolvers = {
       throw new AuthenticationError("Not logged in");
     },
     checkout: async (parent, args, context) => {
+      // parse out referring URL, giving base domain request came from
+      // locally it is http://localhost:3001 since graphQL playground runs on 3001
+      const url = new URL(context.headers.referer).origin;
       // pass array of product IDs into new instance of Order Mongoose model
       // convert IDs into fully populated product objects
       const order = new Order({ products: args.products });
@@ -66,19 +69,8 @@ const resolvers = {
         const product = await stripe.products.create({
           name: products[i].name,
           description: products[i].description,
+          images: [`${url}/images/${products[i].image}`]
         });
-
-        // use line_items array to generate Stripe checkout session
-        const session = await stripe.checkout.sessions.create({
-          payment_method_types: ["card"],
-          line_items,
-          mode: "payment",
-          success_url:
-            "https://example.com/success?session_id={CHECKOUT_SESSION_ID}",
-          cancel_url: "https://example.com/cancel",
-        });
-
-        return { session: session.id };
 
         // generate price id using product id
         const price = await stripe.prices.create({
@@ -94,6 +86,20 @@ const resolvers = {
           quantity: 1,
         });
       }
+
+        // use line_items array to generate Stripe checkout session
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items,
+          mode: "payment",
+          // when testing locally, redirect URLs to localhost (HTTP headers)
+          // when in production, redirect URLs point to deployed website
+          success_url:
+            `${url}/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${url}/`,
+        });
+
+        return { session: session.id };
     },
   },
   Mutation: {
