@@ -11,6 +11,7 @@ import {
 import { QUERY_PRODUCTS } from "../utils/queries";
 import Cart from "../components/Cart";
 import spinner from "../assets/spinner.gif";
+import { idbPromise } from "../utils/helpers";
 
 function Detail() {
   // get GSO
@@ -35,11 +36,20 @@ function Detail() {
         _id: id,
         purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1,
       });
+
+      // if updating quantity, use existing item data and increment purchaseQuantity value by 1
+      idbPromise("cart", "put", {
+        ...itemInCart,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1
+      });
     } else {
       dispatch({
         type: ADD_TO_CART,
         product: { ...currentProduct, purchaseQuantity: 1 },
       });
+
+      // if product isn't in cart yet, add to current shopping cart in idb
+      idbPromise("cart", "put", { ...currentProduct, purchaseQuantity: 1 });
     }
   };
 
@@ -48,14 +58,18 @@ function Detail() {
       type: REMOVE_FROM_CART,
       _id: currentProduct._id,
     });
+
+    // upon removal from cart, delete item from idb using "currentProduct._id" to locate what to remove
+    idbPromise("cart", "delete", { ...currentProduct });
   };
 
   // checks for data in GSO products array, if there is, find which product is current one we want to display
   useEffect(() => {
+    // already in global store
     if (products.length) {
       // find product with matching _id from useParams() Hook
       setCurrentProduct(products.find((product) => product._id === id));
-      // if no products in GSO, like if first time loading app
+      // if no products in GSO, i.e. first time loading app, retrieve from server
       // use product data returned from useQuery() Hook to set product data to GSO
     } else if (data) {
       // we're not saving current product to GSO, only locally bc it's only used in this specific component at this specific moment
@@ -63,9 +77,22 @@ function Detail() {
         type: UPDATE_PRODUCTS,
         products: data.products,
       });
+
+      data.products.forEach((product) => {
+        idbPromise("products", "put", product);
+      });
+    }
+    // get cache from idb
+    else if (!loading) {
+      idbPromise("products", "get").then((indexedProducts) => {
+        dispatch({
+          type: UPDATE_PRODUCTS,
+          products: indexedProducts
+        });
+      });
     }
     // DEPENDENCY ARRAY: when there is data in products array, run setCurrentProduct to  display single product data
-  }, [products, data, dispatch, id]);
+  }, [products, data, loading, dispatch, id]);
 
   return (
     <>

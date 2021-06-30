@@ -3,6 +3,7 @@ import { useQuery } from '@apollo/client';
 import { QUERY_CATEGORIES } from '../../utils/queries';
 import { UPDATE_CATEGORIES, UPDATE_CURRENT_CATEGORY } from "../../utils/actions";
 import { useStoreContext } from "../../utils/GlobalState";
+import { idbPromise } from "../../utils/helpers";
 
 function CategoryMenu() {
   // retrieve current state from GSO and dispatch method to update state
@@ -12,7 +13,7 @@ function CategoryMenu() {
   const { categories } = state;
 
   // useQuery is async
-  const { data: categoryData } = useQuery(QUERY_CATEGORIES);
+  const { loading, data: categoryData } = useQuery(QUERY_CATEGORIES);
   // const categories = categoryData?.categories || [];
 
   useEffect(() => {
@@ -23,8 +24,20 @@ function CategoryMenu() {
         type: UPDATE_CATEGORIES,
         categories: categoryData.categories
       });
+
+      categoryData.categories.forEach(category => {
+        idbPromise("categories", "put", category);
+      });
+      
+    } else if (!loading) {
+      idbPromise("categories", "get").then(categories => {
+        dispatch({
+          type: UPDATE_CATEGORIES,
+          categories: categories
+        });
+      });
     }
-  }, [categoryData, dispatch]);
+  }, [categoryData, loading, dispatch]);
 
   const handleClick = id => {
     dispatch({

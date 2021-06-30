@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useStoreContext } from "../../utils/GlobalState";
 import { UPDATE_PRODUCTS } from "../../utils/actions";
-
+import { idbPromise } from "../../utils/helpers";
 import ProductItem from '../ProductItem';
 import { QUERY_PRODUCTS } from '../../utils/queries';
 import spinner from '../../assets/spinner.gif';
@@ -20,14 +20,30 @@ function ProductList() {
   useEffect(() => {
     // when data obj from useQuery goes from undefiend to having value
     if (data) {
-
+      // if there's data to be stored, store in global state obj
       dispatch({
         type: UPDATE_PRODUCTS,
        // instructs reducer fx to save array of product data to GSO
         products: data.products
       });
+
+      // also take each product and save to IndexedDB using helper fx
+      data.products.forEach((product) => {
+        idbPromise("products", "put", product);
+      });
+
+      // add else if to check if "loading" is undefined in "useQuery()" Hook
+    } else if (!loading) {
+      // since we're offline, get all data form "products" store
+      idbPromise("products", "get").then((products) => {
+        // use retrieved array product data to set global state for offline browsing
+        dispatch({
+          type: UPDATE_PRODUCTS,
+          products: products
+        });
+      });
     }
-  }, [data, dispatch]);
+  }, [data, loading, dispatch]);
 
   // const products = data?.products || [];
 
