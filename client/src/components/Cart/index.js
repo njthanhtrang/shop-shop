@@ -37,6 +37,14 @@ const Cart = () => {
     // Hook runs on load no matter what but only runs again if any value in dep arr changed since last time it ran
   }, [state.cart.length, dispatch]);
 
+  useEffect(() => {
+    if (data) {
+      stripePromise.then((res) => {
+        res.redirectToCheckout({ sessionId: data.checkout.session });
+      });
+    }
+  }, [data]);
+
   function toggleCart() {
     dispatch({ type: TOGGLE_CART });
   }
